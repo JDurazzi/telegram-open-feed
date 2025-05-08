@@ -1,4 +1,4 @@
-# 📰 OpenFeedReaderBot
+# 📰 OpenFeedReaderBot [![Run Feed Reader](https://github.com/JDurazzi/telegram-open-feed/actions/workflows/run-bot.yml/badge.svg?branch=main)](https://github.com/JDurazzi/telegram-open-feed/actions/workflows/run-bot.yml)
 
 OpenFeedReaderBot è uno script Python che legge automaticamente gli articoli pubblicati nel feed RSS di [Open.online](https://www.open.online/feed/) e li pubblica in un canale Telegram.
 
