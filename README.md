@@ -93,7 +93,3 @@ Il messaggio viene inviato in formato HTML e con notifica silenziata.
 - `README.md`: Questo file.
 
 ---
-
-## 📜 Licenza
-
-Questo progetto è distribuito sotto licenza MIT. Vedi il file `LICENSE` per i dettagli.
