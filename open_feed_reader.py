@@ -1,9 +1,9 @@
 import feedparser
 from telegram import Bot
 import os
-import time
 import asyncio
-import sqlite3
+from supabase import create_client, Client
+from datetime import datetime, timedelta, timezone
 
 # ========== Configuration ==========
 TOKEN =  os.getenv('TELEGRAM_BOT_TOKEN')
@@ -12,58 +12,37 @@ CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
 # ========== end Configuration ==========
 
 bot = Bot(token=TOKEN)
-file_path = 'posted_links.db'
-posted_links = set()
+tablename = 'posted_links'
+conn: Client = create_client(
+    url=os.getenv('SUPABASE_URL'),
+    key=os.getenv('SUPABASE_KEY')
+)
 
-def init_db():
-    conn = sqlite3.connect(file_path)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS links (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            link TEXT UNIQUE
-        )
-    ''')
-    conn.commit()
-    conn.close()
+def check_old_links_and_delete():
+    # Calcola la data di 2 giorni fa
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=2)
 
-def get_creation_time(file_path):
-    # Ottieni la data di creazione del file
-    return os.path.getctime(file_path)
-
-def check_db_age_and_init():
-    # Controlla se il file esiste e se è più vecchio di 24 ore
-    if os.path.exists(file_path):
-        creation_time = get_creation_time(file_path)
-        current_time = time.time()
-        if (current_time - creation_time) > 172.800:  # 172.800 secondi in due giorni
-            os.remove(file_path)
-            init_db()
-    else:
-        init_db()
+    # Esegui il DELETE dei record più vecchi di due giorni
+    conn.table("posted_links")\
+        .delete()\
+        .lt("inserted_at", cutoff_date.isoformat())\
+        .execute()
 
 def get_feed_entries():
     feed = feedparser.parse(RSS_FEED_URL)
     return feed.entries
 
 def link_is_posted(link):
-    conn = sqlite3.connect(file_path)
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM links WHERE link = ?', (link,))
-    result = cursor.fetchone()
-    conn.close()
-    return result is not None
+    data = conn.table(tablename)\
+        .select("*")\
+        .eq("url", link)\
+        .execute()
+    return len(data.data) > 0
 
 def save_link_to_db(link):
-    conn = sqlite3.connect(file_path)
-    cursor = conn.cursor()
-    try:
-        cursor.execute('INSERT INTO links (link) VALUES (?)', (link,))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        pass  # Ignora se il link è già presente
-    finally:
-        conn.close()
+    conn.table(tablename)\
+        .insert({"url": link})\
+        .execute()
 
 async def send_new_articles():
     for entry in get_feed_entries():
@@ -76,9 +55,9 @@ async def send_new_articles():
             save_link_to_db(entry.link)
 
 async def main():
-    check_db_age_and_init()
+    check_old_links_and_delete()
     await send_new_articles()
 
 # Avvio dello script
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
