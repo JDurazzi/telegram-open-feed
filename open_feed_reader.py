@@ -9,13 +9,15 @@ from datetime import datetime, timedelta, timezone
 TOKEN =  os.getenv('TELEGRAM_BOT_TOKEN')
 RSS_FEED_URL = 'https://www.open.online/feed/'
 CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 # ========== end Configuration ==========
 
 bot = Bot(token=TOKEN)
 tablename = 'posted_links'
 conn: Client = create_client(
-    url=os.getenv('SUPABASE_URL'),
-    key=os.getenv('SUPABASE_KEY')
+    SUPABASE_URL,
+    SUPABASE_KEY
 )
 
 def check_old_links_and_delete():
